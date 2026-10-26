@@ -120,7 +120,37 @@ Set-ItemProperty -Path $UninstKey -Name 'NoRepair' -Value 1 -Type DWord
 
 # 7) Abrir la app
 Paso 'Abriendo la app...'
-Start-Process -FilePath $TargetExe -WorkingDirectory $InstallDir
+try {
+    Start-Process -FilePath $TargetExe -WorkingDirectory $InstallDir
+} catch {
+    # "Una directiva de Control de aplicaciones bloqueo este archivo": el exe no va firmado y
+    # Windows no lo deja arrancar. Puede ser Smart App Control (Windows 11) o una politica de TI
+    # (WDAC / AppLocker / Intune); la solucion es distinta, asi que dejamos el diagnostico hecho.
+    $sac = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState
+    $sacTxt = switch ($sac) { 0 { 'desactivado' } 1 { 'ACTIVADO' } 2 { 'en evaluacion' } default { 'no existe en este PC' } }
+    $ev = $null
+    try {
+        $ev = Get-WinEvent -LogName 'Microsoft-Windows-CodeIntegrity/Operational' -MaxEvents 50 -ErrorAction Stop |
+              Where-Object { $_.Id -in 3033, 3034, 3076, 3077, 3089 } | Select-Object -First 1
+    } catch { }
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+
+    Write-Host ''
+    Write-Host 'La app quedo instalada, pero Windows NO la deja abrirse (Control de aplicaciones).' -ForegroundColor Yellow
+    Write-Host 'Copia desde aqui hasta el final y enviaselo a Santiago Carvajal:' -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host "  Equipo: $env:COMPUTERNAME  Usuario: $env:USERNAME"
+    Write-Host "  Windows: $($os.Caption) $($os.Version)"
+    Write-Host "  Smart App Control: $sacTxt"
+    if ($ev) {
+        $msg = ($ev.Message -split "`r?`n" | Where-Object { $_ } | Select-Object -First 3) -join ' '
+        Write-Host "  Evento $($ev.Id) ($($ev.TimeCreated)): $msg"
+    } else {
+        Write-Host '  Evento de Code Integrity: no se pudo leer'
+    }
+    Write-Host ''
+    return
+}
 
 Write-Host ''
 Write-Host "Listo. $AppName $version instalada y arrancara sola con Windows." -ForegroundColor Green
