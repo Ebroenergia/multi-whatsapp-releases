@@ -98,6 +98,8 @@ function New-Shortcut($lnk) {
 }
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('Programs')) "$AppName.lnk")
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) "$AppName.lnk")
+# Que Windows suelte su cache de iconos (si no, al reinstalar sigue mostrando el icono viejo).
+try { Start-Process "$env:SystemRoot\System32\ie4uinit.exe" -ArgumentList '-show' -WindowStyle Hidden } catch {}
 Paso 'Accesos directos creados (Menu Inicio y Escritorio)'
 
 # 5) Arranque con Windows en segundo plano (mismo nombre de valor que usa la app)
