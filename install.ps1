@@ -22,9 +22,10 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # la barra de progreso de PS 5.1 ralentiza mucho la descarga
 
 $Feed       = 'https://github.com/Ebroenergia/multi-whatsapp-releases/releases/latest/download/latest.json'
-$AppName    = 'Ebro Multi WhatsApp'
+$AppName    = 'EbroMultiWhatsApp'      # nombre visible (sin espacios desde la 1.7.0)
+$Carpeta    = 'Ebro Multi WhatsApp'    # carpetas de siempre: instalacion y datos (sesiones)
 $ExeName    = 'MultiWhatsApp.exe'
-$InstallDir = Join-Path $env:LOCALAPPDATA "Programs\$AppName"
+$InstallDir = Join-Path $env:LOCALAPPDATA "Programs\$Carpeta"
 $TargetExe  = Join-Path $InstallDir $ExeName
 $RunKey     = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $RunValue   = 'EbroMultiWhatsApp'
@@ -96,6 +97,8 @@ function New-Shortcut($lnk) {
         $sc.Save()
     } catch { Write-Host "    (no se pudo crear el acceso directo $lnk)" -ForegroundColor DarkYellow }
 }
+# Los accesos con el nombre viejo (con espacios) se quitan: ahora se llama EbroMultiWhatsApp
+foreach ($d in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('DesktopDirectory'))) { Remove-Item -LiteralPath (Join-Path $d "$Carpeta.lnk") -ErrorAction SilentlyContinue }
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('Programs')) "$AppName.lnk")
 New-Shortcut (Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) "$AppName.lnk")
 # Que Windows suelte su cache de iconos (si no, al reinstalar sigue mostrando el icono viejo).
